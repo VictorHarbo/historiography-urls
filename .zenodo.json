@@ -24,14 +24,6 @@
   },
   "upload_type": "software",
   "access_right": "open",
-  "related_identifiers": [
-    {
-      "identifier": "https://github.com/VictorHarbo/historiography-urls",
-      "relation": "isSupplementTo",
-      "scheme": "url"
-    }
-  ],
   "version": "1.0.0",
-  "language": "eng",
-  "grants": []
+  "language": "eng"
 }
