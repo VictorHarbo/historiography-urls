@@ -90,8 +90,8 @@ PAGE 2
 **Usage:**
 ```bash
 cd journal_of_contemporary_history_sage
-python batch_extract_pdfs.py --input-dir ./web/pdfs --output-dir ./web/texts
-python batch_extract_pdfs.py --input-dir ./internet/pdfs --output-dir ./internet/texts
+python ../scripts/batch_extract_pdfs.py --input-dir ./web/pdfs --output-dir ./web/texts
+python ../scripts/batch_extract_pdfs.py --input-dir ./internet/pdfs --output-dir ./internet/texts
 ```
 
 ### Stage 4: URL Extraction
@@ -115,11 +115,11 @@ python batch_extract_pdfs.py --input-dir ./internet/pdfs --output-dir ./internet
 **Usage:**
 ```bash
 # Strict extraction
-python extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts \
+python scripts/extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts \
   ./journal_of_contemporary_history_sage/web/urls.json
 
 # Lenient extraction
-python extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts \
+python scripts/extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts \
   ./journal_of_contemporary_history_sage/web/lenient_urls.json -lenient
 ```
 
@@ -165,10 +165,10 @@ python extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts
 
 **Usage:**
 ```bash
-python batch_extract_pdfs.py --input-dir ./european_contemporary_history/web/pdfs \
+python scripts/batch_extract_pdfs.py --input-dir ./european_contemporary_history/web/pdfs \
   --output-dir ./european_contemporary_history/web/texts
 
-python batch_extract_pdfs.py --input-dir ./european_contemporary_history/internet/pdfs \
+python scripts/batch_extract_pdfs.py --input-dir ./european_contemporary_history/internet/pdfs \
   --output-dir ./european_contemporary_history/internet/texts
 ```
 
@@ -185,11 +185,11 @@ python batch_extract_pdfs.py --input-dir ./european_contemporary_history/interne
 **Usage:**
 ```bash
 # Strict URLs
-python extract_urls_from_dir.py ./european_contemporary_history/web/texts \
+python scripts/extract_urls_from_dir.py ./european_contemporary_history/web/texts \
   ./european_contemporary_history/web/urls.json
 
 # Lenient URLs
-python extract_urls_from_dir.py ./european_contemporary_history/web/texts \
+python scripts/extract_urls_from_dir.py ./european_contemporary_history/web/texts \
   ./european_contemporary_history/web/lenient_urls.json -lenient
 ```
 
@@ -227,11 +227,13 @@ DOI-extractor/
 │       ├── urls.json
 │       └── lenient_urls.json
 │
-├── batch_extract_pdfs.py      # Universal PDF-to-text extraction
-├── extract_urls_from_dir.py   # Universal URL extraction
-├── combine_json.py            # Combine multiple JSON files
-├── search_urls.py             # Search through URL collections
-└── count_json_items.py        # Count items in JSON files
+├── scripts/
+│   ├── batch_extract_pdfs.py      # Universal PDF-to-text extraction
+│   ├── extract_urls_from_dir.py   # Universal URL extraction
+│   ├── combine_json.py            # Combine multiple JSON files
+│   ├── search_urls.py             # Search through URL collections
+│   └── count_json_items.py        # Count items in JSON files
+└── requirements.txt
 ```
 
 
@@ -243,7 +245,7 @@ After extracting URLs from multiple sources, combine them into a single dataset:
 
 ```bash
 # Combine all lenient URLs from all sources
-python combine_json.py \
+python scripts/combine_json.py \
   european_contemporary_history/web/lenient_urls.json \
   european_contemporary_history/internet/lenient_urls.json \
   journal_of_contemporary_history_sage/web/lenient_urls.json \
@@ -251,7 +253,7 @@ python combine_json.py \
   -o combined_lenient_urls.json
 
 # Combine all strict URLs
-python combine_json.py \
+python scripts/combine_json.py \
   european_contemporary_history/web/urls.json \
   european_contemporary_history/internet/urls.json \
   journal_of_contemporary_history_sage/web/urls.json \
@@ -263,11 +265,11 @@ python combine_json.py \
 
 ```bash
 # Count total URLs collected
-python count_json_items.py combined_urls.json --detailed
-python count_json_items.py combined_lenient_urls.json --detailed
+python scripts/count_json_items.py combined_urls.json --detailed
+python scripts/count_json_items.py combined_lenient_urls.json --detailed
 
 # Count URLs per source
-python count_json_items.py \
+python scripts/count_json_items.py \
   european_contemporary_history/web/urls.json \
   european_contemporary_history/internet/urls.json \
   journal_of_contemporary_history_sage/web/urls.json \
@@ -279,14 +281,14 @@ python count_json_items.py \
 
 ```bash
 # Find all DOI references
-python search_urls.py combined_urls.json "doi.org" -o doi_urls.json
+python scripts/search_urls.py combined_urls.json "doi.org" -o doi_urls.json
 
 # Find specific domains
-python search_urls.py combined_urls.json "archive.org" -o archive_urls.json
-python search_urls.py combined_urls.json "cambridge.org" --case-sensitive
+python scripts/search_urls.py combined_urls.json "archive.org" -o archive_urls.json
+python scripts/search_urls.py combined_urls.json "cambridge.org" --case-sensitive
 
 # Search in file paths too
-python search_urls.py combined_urls.json "spanish-civil-war" \
+python scripts/search_urls.py combined_urls.json "spanish-civil-war" \
   --search-files -o spanish_war_urls.json
 ```
 
