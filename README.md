@@ -1,4 +1,4 @@
-# URL Extraction and Management Tools
+# Historiography URLs: URL Extraction and Analysis Tools for Academic Journal Corpora
 
 [![DOI](https://zenodo.org/badge/1135601642.svg)](https://doi.org/10.5281/zenodo.18267734)
 
