@@ -1,5 +1,8 @@
 # URL Extraction and Management Tools
 
+[![DOI](https://zenodo.org/badge/1135601642.svg)](https://doi.org/10.5281/zenodo.18267734)
+
+
 A collection of Python scripts for extracting, combining, searching, and analyzing URLs from large text corpora.
 
 ## Installation
