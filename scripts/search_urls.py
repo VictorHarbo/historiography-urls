@@ -84,21 +84,33 @@ def save_results(matches: List[Dict[str, str]], output_file: Path, indent: int =
 
 
 def print_results(matches: List[Dict[str, str]], show_files: bool = True) -> None:
-    """Print matching results to stdout."""
+    """Print matching results to stdout, grouped by file."""
     if not matches:
         print("No matches found.")
         return
     
-    print(f"\nFound {len(matches)} matching URL(s):\n")
-    print("-" * 80)
-    
-    for i, entry in enumerate(matches, 1):
-        url = entry.get('url', 'N/A')
+    # Group matches by file
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for entry in matches:
         file_path = entry.get('file', 'N/A')
+        grouped[file_path].append(entry.get('url', 'N/A'))
+    
+    print(f"\nFound {len(matches)} matching URL(s) across {len(grouped)} file(s)\n")
+    print("=" * 80)
+    
+    # Sort files for consistent output
+    for file_path in sorted(grouped.keys()):
+        urls = grouped[file_path]
         
-        print(f"{i}. URL: {url}")
-        if show_files and file_path != 'N/A':
-            print(f"   File: {file_path}")
+        if show_files:
+            print(f"\nFile: {file_path}")
+            print(f"URLs found: {len(urls)}")
+            print("-" * 80)
+        
+        for i, url in enumerate(urls, 1):
+            print(f"{i}. {url}")
+        
         print()
 
 
