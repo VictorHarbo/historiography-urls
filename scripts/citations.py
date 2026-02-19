@@ -1,6 +1,6 @@
 import requests
 
-def get_most_cited_article_in_journal(journal_issn, max_articles=100):
+def get_most_cited_article_in_journal(journal_issn, max_articles=10):
     """
     This function retrieves the most cited article in a journal using the Crossref API.
 
@@ -15,7 +15,9 @@ def get_most_cited_article_in_journal(journal_issn, max_articles=100):
     works_url = f"https://api.crossref.org/journals/{journal_issn}/works"
     params = {
         'rows': max_articles,
-        'select': 'DOI,title,issued,is-referenced-by-count'
+        'select': 'DOI,title,issued,is-referenced-by-count',
+        'sort': 'is-referenced-by-count',
+        'order': 'desc'
     }
     response = requests.get(works_url, params=params)
 
@@ -35,7 +37,7 @@ def get_most_cited_article_in_journal(journal_issn, max_articles=100):
         if issued and 'date-parts' in issued:
             year = issued['date-parts'][0][0] if issued['date-parts'][0] else None
             if year and year > 2000:
-                filtered_articles.append(article)
+                    filtered_articles.append(article)
     
     if not filtered_articles:
         return {"error": "No articles found published after 2000."}
@@ -44,6 +46,28 @@ def get_most_cited_article_in_journal(journal_issn, max_articles=100):
     most_cited_article = max(filtered_articles, key=lambda x: x.get('is-referenced-by-count', 0))
 
     return most_cited_article
+
+def print_article_info(article):
+    """
+    Helper function to print article information in a readable format.
+
+    Args:
+        article (dict): Article information dictionary.
+    """
+    if 'error' in article:
+        print(article['error'])
+        return
+
+    doi = article.get('DOI', 'N/A')
+    title = article.get('title', ['N/A'])[0]
+    issued = article.get('issued', {}).get('date-parts', [[None]])[0][0]
+    citations = article.get('is-referenced-by-count', 0)
+
+    print(f"Title: {title}")
+    print(f"Publication Year: {issued}")
+    print(f"DOI: {doi}")
+    print(f"Citation Count: {citations}")
+    print("-" * 40)
 
 
 def main():
@@ -75,11 +99,15 @@ def main():
     CEH_print_most_cited = get_most_cited_article_in_journal(contemporary_european_history_print_issn)
 
     # Display results
-    print("Results:")
-    print("Journal of Contemporary History (Online):", JCH_online_most_cited)
-    print("Journal of Contemporary History (Print):", JCH_print_most_cited)
-    print("Contemporary European History (Online):", CEH_online_most_cited)
-    print("Contemporary European History (Print):", CEH_print_most_cited)
+    print("Results:\n")
+    print("Journal of Contemporary History (Online):\n")
+    print_article_info(JCH_online_most_cited)
+    print("Journal of Contemporary History (Print):\n")
+    print_article_info(JCH_print_most_cited)
+    print("Contemporary European History (Online):\n")
+    print_article_info(CEH_online_most_cited)
+    print("Contemporary European History (Print):\n")
+    print_article_info(CEH_print_most_cited)
 
 
 if __name__ == "__main__":
