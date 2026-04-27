@@ -3,6 +3,28 @@ import sys
 import os
 
 def filter_urls(input_path, output_path=None):
+    """
+    Filter out unwanted URLs from a JSON file containing URL entries.
+
+    Removes entries with URLs matching:
+    - doi.org (DOI resolver links)
+    - creativecommons.org/licenses (Creative Commons license links)
+
+    Entries without a 'url' key are also removed.
+
+    Args:
+        input_path (str): Path to the input JSON file. Expected to contain a list
+                          of objects with at least a 'url' key.
+        output_path (str, optional): Path to write the filtered JSON output.
+                                     If not provided, defaults to the input path
+                                     with '_filtered' appended before the extension.
+
+    Returns:
+        None. Writes the filtered list to the output file and prints a summary.
+
+    Example:
+        filter_urls('output/combined_urls.json', 'output/filtered_urls.json')
+    """
     with open(input_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
