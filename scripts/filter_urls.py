@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import re
 
 def filter_urls(input_path, output_path=None):
     """
@@ -27,6 +28,49 @@ def filter_urls(input_path, output_path=None):
     """
     with open(input_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
+
+    expanded = []
+    for entry in data:
+        url = entry['url']
+
+        # Replace en-dashes with hyphens (common OCR/copy-paste artifact in URLs)
+        url = url.replace('\u2013', '-').replace('\u2014', '-')
+
+        # If multiple URLs are joined by ';', create a separate entry for each
+        parts = [p.strip() for p in url.split(';') if p.strip()]
+        if len(parts) > 1:
+            for part in parts:
+                expanded.append({**entry, 'url': part})
+            continue
+        expanded.append(entry)
+    data = expanded
+
+    for entry in data:
+        url = entry['url']
+
+        # Strip trailing punctuation
+        url = url.rstrip('.,;:!?)>"\']')
+
+        # Strip trailing citation text in many forms:
+        #   (accessed ...), (lastaccessed ...), (last accessed ...),
+        #   (lastvisited ...), (last visited ...), (lastaccessedon ...),
+        #   ,accessed..., ,lastaccessed..., (documentnolongeravailable, etc.
+        url = re.split(
+            r'[\s;,]?\((?:last\s*accessed|lastaccessed|accessed|last\s*visited|lastvisited|lastaccessedon|document\s*no\s*longer)',
+            url, flags=re.IGNORECASE
+        )[0]
+
+        # Also strip bare ",accessed" or ",lastaccessed" without parenthesis
+        url = re.split(r',\s*(?:last\s*accessed|lastaccessed|accessed)', url, flags=re.IGNORECASE)[0]
+
+        # Strip trailing punctuation again after cleaning
+        url = url.rstrip('.,;:!?)>"\']')
+
+        # Prepend scheme to bare www. URLs
+        if url.startswith('www.'):
+            url = 'http://' + url
+
+        entry['url'] = url
 
     filtered = [
         entry for entry in data
