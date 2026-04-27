@@ -45,7 +45,7 @@ def filter_articles_published_after_2000(articles):
         issued = article.get('issued')
         if issued and 'date-parts' in issued:
             year = issued['date-parts'][0][0] if issued['date-parts'][0] else None
-            if year and year > 2000:
+            if year and year > 1993:
                 filtered_articles.append(article)
     
     if not filtered_articles:
