@@ -5,6 +5,9 @@ import re
 import time
 import threading
 import requests
+import matplotlib
+matplotlib.use('Agg')  # non-interactive backend, safe for scripts
+import matplotlib.pyplot as plt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from urllib.parse import urlparse
@@ -104,6 +107,72 @@ def check_url(session, url):
         }
 
 
+def save_summary_png(results, skipped, png_path):
+    """
+    Render the summary counts as a table and save it as a PNG image.
+
+    Args:
+        results (list): List of result dicts from check_url().
+        skipped (int): Number of entries skipped as invalid URLs.
+        png_path (str): Destination path for the PNG file.
+    """
+    total = len(results) + skipped
+    ok_count = sum(1 for r in results if r['ok'])
+
+    rows = [
+        ['Total entries', str(total)],
+        ['Skipped (invalid URL)', str(skipped)],
+        ['Checked', str(len(results))],
+        ['HTTP 200 (working)', str(ok_count)],
+    ]
+
+    fig, ax = plt.subplots(figsize=(6, 0.45 * len(rows) + 1.2))
+    ax.axis('off')
+
+    col_labels = ['Metric', 'Count']
+    col_widths = [0.74, 0.26]
+
+    table = ax.table(
+        cellText=rows,
+        colLabels=col_labels,
+        cellLoc='left',
+        loc='center',
+        bbox=[0, 0, 1, 1],
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+
+    # Style header row
+    for col in range(len(col_labels)):
+        cell = table[0, col]
+        cell.set_facecolor('#2c3e50')
+        cell.set_text_props(color='white', fontweight='bold')
+
+    # Alternating row colours; highlight the HTTP 200 row green
+    for row_idx, row in enumerate(rows, start=1):
+        for col in range(2):
+            cell = table[row_idx, col]
+            if row[0].strip().startswith('HTTP 200'):
+                cell.set_facecolor('#d5f5e3')
+            elif row_idx % 2 == 0:
+                cell.set_facecolor('#f2f3f4')
+            else:
+                cell.set_facecolor('#ffffff')
+
+    # Apply column widths
+    for col, width in enumerate(col_widths):
+        for row_idx in range(len(rows) + 1):
+            table[row_idx, col].set_width(width)
+
+    plt.title(
+        f"URL Check Summary  ·  {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        fontsize=12, fontweight='bold', pad=10,
+    )
+    plt.tight_layout()
+    plt.savefig(png_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+
 def build_report(results, input_path, skipped):
     total = len(results) + skipped
     ok = [r for r in results if r['ok']]
@@ -139,8 +208,6 @@ def build_report(results, input_path, skipped):
     ]
     for code in sorted(by_status):
         lines.append(f"| — HTTP {code} | {len(by_status[code])} |")
-    if errors:
-        lines.append(f"| — Connection/other errors | {len(errors)} |")
     lines.append("")
 
     if ok:
@@ -161,19 +228,6 @@ def build_report(results, input_path, skipped):
             url_cell = r['url'].replace('|', '\\|')
             file_cell = r.get('file', '—').replace('|', '\\|')
             lines.append(f"| `{url_cell}` | {file_cell} |")
-        lines.append("")
-
-    if errors:
-        lines += [
-            f"## Connection / Other Errors ({len(errors)})",
-            "",
-            "| URL | Error |",
-            "|-----|-------|",
-        ]
-        for r in errors:
-            url_cell = r['url'].replace('|', '\\|')
-            error_cell = (r['error'] or '—').replace('|', '\\|')
-            lines.append(f"| `{url_cell}` | {error_cell} |")
         lines.append("")
 
     return "\n".join(lines)
@@ -280,8 +334,13 @@ def main():
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(report)
 
+    png_path = os.path.splitext(output_path)[0] + '_summary.png'
+    save_summary_png(results, skipped, png_path)
+
     ok_count = sum(1 for r in results if r['ok'])
-    print(f"\nDone. {ok_count}/{len(results)} URLs working. Report written to: {output_path}")
+    print(f"\nDone. {ok_count}/{len(results)} URLs working.")
+    print(f"Report written to:   {output_path}")
+    print(f"Summary PNG written: {png_path}")
 
 
 if __name__ == '__main__':
