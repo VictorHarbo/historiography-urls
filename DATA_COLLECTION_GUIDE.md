@@ -1,381 +1,338 @@
 # Data Collection Guide
 
+This document explains, step by step, how the data behind the article was
+gathered and processed. It is written to be read alongside the
+[README.md](README.md), which introduces the project and the individual tools.
+If a term is unfamiliar, the README has a short glossary.
+
 ## Overview
 
-This document details the complete workflow for collecting, processing, and extracting URLs from academic journal articles. The project focuses on two main journals:
+The aim was to find every web link cited in two contemporary-history journals
+and then check whether those links still work. The journals are:
 
-1. **European Contemporary History** (Cambridge University Press)
-2. **Journal of Contemporary History** (SAGE Publications)
+1. **Journal of Contemporary History** — published by SAGE
+2. **Contemporary European History** — published by Cambridge University Press
 
-Each journal collection follows a similar pipeline but uses different access methods and scripts tailored to the publisher's website structure.
+Each journal was handled with the same overall recipe, but the first steps
+differ because each publisher's website is built differently and has to be
+approached in its own way.
 
-## Collection Pipeline
+## The four stages
 
-The data collection process follows these four main stages:
+Whichever journal is being processed, the work moves through four stages:
 
 ```
-1. DOI/Article Discovery
-   ↓
-2. PDF Download
-   ↓
-3. Text Extraction
-   ↓
-4. URL Extraction & Analysis
+1. Find the articles      (which articles match our search?)
+        ↓
+2. Download the PDFs       (fetch a copy of each article)
+        ↓
+3. Extract the text        (pull the words out of each PDF)
+        ↓
+4. Find and analyse links  (collect the web links and check them)
 ```
+
+Stages 3 and 4 are identical for both journals and use the shared tools in the
+[scripts/](scripts/) folder. Stages 1 and 2 use journal-specific scripts.
+
+A note on terminology used below:
+
+- A **DOI** is a permanent identifier for an academic article (for example
+  `10.1177/0022009419834575`). Collecting the DOIs is a convenient way to get a
+  complete list of which articles to download.
+- **Web scraping** means having a program automatically read pages from a
+  website, the way a person would by clicking through them — only much faster.
+- Publishers' sites try to block automated access, so the download scripts use
+  a tool (`undetected-chromedriver`) that drives a real Chrome browser to look
+  like an ordinary visitor. This is why a browser window opens when the scripts
+  run, and why you may occasionally have to solve a "are you a robot?" puzzle by
+  hand.
+
+---
 
 ## Journal of Contemporary History (SAGE)
 
-### Source Information
 - **Publisher:** SAGE Publications
-- **Access Method:** Library proxy
+- **How articles were reached:** through a university library subscription
+- **Scripts:** in the `journal_of_contemporary_history_sage/` folder
 
-### Stage 1: DOI Extraction
+The scripts for stage 1 and 2 are not publicly available as they require institutional credentials.
 
-**Purpose:** Scrapes SAGE journal search results to extract Digital Object Identifiers (DOIs) for all articles matching specific search queries.
+### Stage 1 — Find the articles (`extract_dois_sage.py`)
 
-**Key Features:**
-- Handles pagination automatically
-- Extracts DOIs using regex patterns from article links
-- Captures article titles alongside DOIs
+This script searches the SAGE website for articles matching a chosen word and
+collects the DOI (the article identifier) of every result. It clicks through
+every page of search results automatically and saves the list of DOIs.
 
-**Technology Stack:**
-- Selenium WebDriver
-- BeautifulSoup for HTML parsing
-- Regex for DOI pattern matching
+Two searches were run, one for the word **"web"** and one for **"internet"**,
+to capture articles likely to cite online sources. The results of each were
+kept separately (in the `web/` and `internet/` sub-folders).
 
+### Stage 2 — Download the PDFs (`download_pdfs_sage.py`)
 
+Working from the list of DOIs, this script downloads a PDF of each article
+through the library subscription. It downloads in batches and pauses between
+articles so as not to overload the publisher's servers.
 
-**Search Queries:**
-The extraction was configured to search for articles related to specific topics. In this case "internet" and "web".
+### Stage 3 — Extract the text (`extract_full_pdf_text_sage.py` / `batch_extract_pdfs.py`)
 
-### Stage 2: PDF Download
+This turns each PDF into a plain-text file so its contents can be searched.
+The shared [scripts/batch_extract_pdfs.py](scripts/batch_extract_pdfs.py) tool
+does this for a whole folder at once. It deliberately captures **footnotes**,
+because that is where most web links are cited.
 
-**Purpose:** Downloads PDF files for each extracted DOI through the library proxy system.
+```bash
+python scripts/batch_extract_pdfs.py \
+  --input journal_of_contemporary_history_sage/web/pdfs \
+  --output journal_of_contemporary_history_sage/web/texts
 
-**Key Features:**
-- Reads DOIs from stage 1
-- Uses library proxy 
-- Tracks download progress and handles failures
+python scripts/batch_extract_pdfs.py \
+  --input journal_of_contemporary_history_sage/internet/pdfs \
+  --output journal_of_contemporary_history_sage/internet/texts
+```
 
-### Stage 3: Text Extraction
+Each text file is laid out page by page, with a separator marking where each
+page begins:
 
-**Script:** `extract_full_pdf_text_sage.py`
-
-**Purpose:** Extracts complete text content from downloaded PDFs, including body text, footnotes, citations, and references.
-
-**Key Features:**
-- Uses `pdfplumber` library for comprehensive text extraction
-- Captures all text elements including footnotes
-- Preserves page boundaries with separators
-
-**Technology:**
-- `pdfplumber` - Superior footnote and layout handling
-- Page-by-page processing with progress indicators
-
-**Output Format:**
 ```
 ================================================================================
 PAGE 1
 ================================================================================
 
-[Full text content including footnotes]
+[the full text of page 1, including footnotes]
 
 ================================================================================
 PAGE 2
 ================================================================================
 
-[Continues for all pages...]
+[and so on for every page]
 ```
 
-**Usage:**
+### Stage 4 — Find the links (`extract_urls_from_dir.py`)
+
+This scans the text files and collects every web link, saving the result as a
+JSON file. As explained in the README, there are two modes:
+
+- **Strict** (default) — only clear web addresses (`http://`, `https://`,
+  `www.`). Saved to `urls.json`.
+- **Lenient** (`-lenient`) — also catches domain-like text without a clear
+  prefix. Saved to `lenient_urls.json`.
+
 ```bash
-cd journal_of_contemporary_history_sage
-python ../scripts/batch_extract_pdfs.py --input-dir ./web/pdfs --output-dir ./web/texts
-python ../scripts/batch_extract_pdfs.py --input-dir ./internet/pdfs --output-dir ./internet/texts
+# Strict
+python scripts/extract_urls_from_dir.py \
+  journal_of_contemporary_history_sage/web/texts \
+  journal_of_contemporary_history_sage/web/urls.json
+
+# Lenient
+python scripts/extract_urls_from_dir.py \
+  journal_of_contemporary_history_sage/web/texts \
+  journal_of_contemporary_history_sage/web/lenient_urls.json -lenient
 ```
 
-### Stage 4: URL Extraction
+The saved file is a list pairing each link with the article it came from:
 
-**Script:** `extract_urls_from_dir.py`
-
-**Purpose:** Scans extracted text files to find and catalog all URLs referenced in the articles.
-
-**Two Extraction Modes:**
-
-1. **Strict Mode (default):**
-   - Requires explicit URL schemes: `http://`, `https://`, or `www.`
-   - More conservative, fewer false positives
-   - Output: `urls.json`
-
-2. **Lenient Mode (`-lenient` flag):**
-   - Matches URLs without explicit schemes (e.g., `example.com`)
-   - Catches more domain references
-   - Output: `lenient_urls.json`
-
-**Usage:**
-```bash
-# Strict extraction
-python scripts/extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts \
-  ./journal_of_contemporary_history_sage/web/urls.json
-
-# Lenient extraction
-python scripts/extract_urls_from_dir.py ./journal_of_contemporary_history_sage/web/texts \
-  ./journal_of_contemporary_history_sage/web/lenient_urls.json -lenient
-```
-
-**Output Format:**
 ```json
 [
   {
     "url": "https://example.com/article",
-    "file": "./journal_of_contemporary_history_sage/web/texts/article-title.txt"
-  },
-  {
-    "url": "http://doi.org/10.1234/example",
-    "file": "./journal_of_contemporary_history_sage/web/texts/another-article.txt"
+    "file": "journal_of_contemporary_history_sage/web/texts/article-title.txt"
   }
 ]
 ```
 
-## European Contemporary History (Cambridge)
+---
 
-### Source Information
+## Contemporary European History (Cambridge)
+
 - **Publisher:** Cambridge University Press
-- **Journal:** Contemporary European History
+- **Scripts:** in the `european_contemporary_history/` folder
 
-### Stage 1: Article Discovery and PDF Download
+### Stages 1 & 2 — Find and download in one step (`download_cambridge_pdfs.py`)
 
-**Purpose:** Discover articles from Cambridge search results and downloads PDFs in a single process.
+For Cambridge, finding articles and downloading them is done by a single
+script. It searches Cambridge Core for a chosen word, opens each article in the
+results, finds the "Save PDF" link, and downloads the file — moving through
+every page of results automatically.
 
-**Key Features:**
-- Searches Cambridge Core for specific query terms
-- Extracts article page links from search results
-- Navigates to each article page
-- Identifies and downloads PDF links
-- Sanitizes filenames for safe storage
+As with the other journal, separate searches were run for **"web"** and
+**"internet"**, kept in separate folders. This is also not available as it requires institutional credits.
 
-**URL Pattern Recognition:**
-- Article pages: `/core/journals/contemporary-european-history/article/`
-- PDF service: `/core/services/aop-cambridge-core/content/view/`
+### Stage 3 — Extract the text
 
+This uses the same shared tool as the other journal:
 
-### Stage 2: Text Extraction
-
-**Script:** `batch_extract_pdfs.py` (same as SAGE)
-
-**Usage:**
 ```bash
-python scripts/batch_extract_pdfs.py --input-dir ./european_contemporary_history/web/pdfs \
-  --output-dir ./european_contemporary_history/web/texts
+python scripts/batch_extract_pdfs.py \
+  --input european_contemporary_history/web/pdfs \
+  --output european_contemporary_history/web/texts
 
-python scripts/batch_extract_pdfs.py --input-dir ./european_contemporary_history/internet/pdfs \
-  --output-dir ./european_contemporary_history/internet/texts
+python scripts/batch_extract_pdfs.py \
+  --input european_contemporary_history/internet/pdfs \
+  --output european_contemporary_history/internet/texts
 ```
 
-**Features:**
-- Batch processes all PDFs in a directory
-- Creates `.txt` files with same basename as source PDFs
-- Reports success/failure statistics
-- Shows character and line counts
+### Stage 4 — Find the links
 
-### Stage 4: URL Extraction
+Also identical to the other journal:
 
-**Same process as SAGE (see above)**
-
-**Usage:**
 ```bash
-# Strict URLs
-python scripts/extract_urls_from_dir.py ./european_contemporary_history/web/texts \
-  ./european_contemporary_history/web/urls.json
+# Strict
+python scripts/extract_urls_from_dir.py \
+  european_contemporary_history/web/texts \
+  european_contemporary_history/web/urls.json
 
-# Lenient URLs
-python scripts/extract_urls_from_dir.py ./european_contemporary_history/web/texts \
-  ./european_contemporary_history/web/lenient_urls.json -lenient
+# Lenient
+python scripts/extract_urls_from_dir.py \
+  european_contemporary_history/web/texts \
+  european_contemporary_history/web/lenient_urls.json -lenient
 ```
 
+---
 
-
-## Data Organization
-
-### Directory Structure
+## How the files are organised
 
 ```
-DOI-extractor/
+historiography-urls/
 ├── european_contemporary_history/
-│   ├── web/
-│   │   ├── pdfs/              # Downloaded PDF files (web search)
-│   │   ├── texts/             # Extracted text files
-│   │   ├── urls.json          # Strict URL extraction results
-│   │   └── lenient_urls.json  # Lenient URL extraction results
-│   └── internet/
-│       ├── pdfs/              # Downloaded PDF files (internet search)
-│       ├── texts/             # Extracted text files
-│       ├── urls.json          # Strict URL extraction results
-│       └── lenient_urls.json  # Lenient URL extraction results
+│   ├── web/                       # results of the "web" search
+│   │   ├── pdfs/                  # downloaded PDF articles
+│   │   ├── texts/                 # the extracted plain text
+│   │   ├── urls.json              # links found (strict mode)
+│   │   └── lenient_urls.json      # links found (lenient mode)
+│   └── internet/                  # results of the "internet" search (same layout)
 │
 ├── journal_of_contemporary_history_sage/
 │   ├── web/
-│   │   ├── dois.json          # Extracted DOIs
-│   │   ├── pdfs/              # Downloaded PDF files
-│   │   ├── texts/             # Extracted text files
-│   │   ├── urls.json          # Strict URL extraction results
-│   │   └── lenient_urls.json  # Lenient URL extraction results
-│   └── internet/
-│       ├── dois.json
-│       ├── pdfs/
-│       ├── texts/
-│       ├── urls.json
-│       └── lenient_urls.json
+│   │   ├── dois.json              # the article identifiers found in stage 1
+│   │   ├── pdfs/
+│   │   ├── texts/
+│   │   ├── urls.json
+│   │   └── lenient_urls.json
+│   └── internet/                  # (same layout)
 │
-├── scripts/
-│   ├── batch_extract_pdfs.py      # Universal PDF-to-text extraction
-│   ├── extract_urls_from_dir.py   # Universal URL extraction
-│   ├── combine_json.py            # Combine multiple JSON files
-│   ├── search_urls.py             # Search through URL collections
-│   └── count_json_items.py        # Count items in JSON files
-└── requirements.txt
+├── scripts/                       # shared tools (stages 3 and 4, plus analysis)
+└── output/                        # combined link lists and the final report
 ```
 
+## Bringing it all together (post-processing)
 
-## Post-Processing
+Once links have been extracted from all four folders (two journals × two
+searches), they are merged, cleaned, and checked. These steps use the shared
+tools and are described in the README; the commands below show the exact runs
+used for the article.
 
-### Combining URL Collections
-
-After extracting URLs from multiple sources, combine them into a single dataset:
+### Merge the link lists
 
 ```bash
-# Combine all lenient URLs from all sources
+# Merge every lenient list into one
 python scripts/combine_json.py \
   european_contemporary_history/web/lenient_urls.json \
   european_contemporary_history/internet/lenient_urls.json \
   journal_of_contemporary_history_sage/web/lenient_urls.json \
   journal_of_contemporary_history_sage/internet/lenient_urls.json \
-  -o combined_lenient_urls.json
+  -o output/combined_lenient_urls.json
 
-# Combine all strict URLs
+# Merge every strict list into one
 python scripts/combine_json.py \
   european_contemporary_history/web/urls.json \
   european_contemporary_history/internet/urls.json \
   journal_of_contemporary_history_sage/web/urls.json \
   journal_of_contemporary_history_sage/internet/urls.json \
-  -o combined_urls.json
+  -o output/combined_urls.json
 ```
 
-### Counting and Statistics
+### Clean the merged list
 
 ```bash
-# Count total URLs collected
-python scripts/count_json_items.py combined_urls.json --detailed
-python scripts/count_json_items.py combined_lenient_urls.json --detailed
-
-# Count URLs per source
-python scripts/count_json_items.py \
-  european_contemporary_history/web/urls.json \
-  european_contemporary_history/internet/urls.json \
-  journal_of_contemporary_history_sage/web/urls.json \
-  journal_of_contemporary_history_sage/internet/urls.json \
-  --detailed
+python scripts/filter_urls.py output/combined_urls.json output/filtered_urls.json
 ```
 
-### Searching URL Collections
+### Count the links
 
 ```bash
-# Find all DOI references
-python scripts/search_urls.py combined_urls.json "doi.org" -o doi_urls.json
-
-# Find specific domains
-python scripts/search_urls.py combined_urls.json "archive.org" -o archive_urls.json
-python scripts/search_urls.py combined_urls.json "cambridge.org" --case-sensitive
-
-# Search in file paths too
-python scripts/search_urls.py combined_urls.json "spanish-civil-war" \
-  --search-files -o spanish_war_urls.json
+python scripts/count_json_items.py output/combined_urls.json --detailed
+python scripts/count_json_items.py output/combined_lenient_urls.json --detailed
 ```
 
+### Check which links still work
 
-## Technical Requirements
-
-### Python Dependencies
-
-```txt
-pdfplumber          # PDF text extraction
-undetected-chromedriver  # Bot detection bypass
-selenium            # Web automation
-beautifulsoup4      # HTML parsing
-requests            # HTTP library
+```bash
+python scripts/check_urls.py output/filtered_urls.json output/filtered_urls_report.md
 ```
 
-Install all dependencies:
+### Search the links
+
+```bash
+# Find references to particular web archives
+python scripts/search_urls.py output/combined_urls.json web.archive.org
+python scripts/search_urls.py output/combined_urls.json archive-it.org
+```
+
+The full list of searches run for the article is recorded in
+[SEARCH_LOG.md](SEARCH_LOG.md).
+
+## What you need to run the code
+
+### Supporting libraries
+
+The scripts rely on a handful of free Python libraries, listed in
+[requirements.txt](requirements.txt):
+
+| Library | What it is used for |
+|---------|---------------------|
+| `pdfplumber` | Pulling text (and footnotes) out of PDFs |
+| `requests` | Visiting web links to check whether they work |
+| `matplotlib` | Drawing the summary image for the link-check report |
+| `undetected-chromedriver` | Driving a real Chrome browser to download articles |
+| `selenium` | Controlling the browser step by step |
+| `beautifulsoup4` / `lxml` | Reading the structure of web pages |
+
+Install them all with:
+
 ```bash
 pip install -r requirements.txt
 ```
 
+### System requirements
 
-### System Requirements
-
-- **Python:** 3.7+
-
+- **Python 3.7 or newer.**
+- For the download scripts only: the **Google Chrome** browser installed, plus
+  access to the journals (here, through a university library subscription).
 
 ## Troubleshooting
 
-### Text Extraction Problems
+### Footnotes are missing from the extracted text
 
-If footnotes are missing:
-- Verify using `pdfplumber` (not PyPDF2 or other libraries)
-- Try layout-preserved mode: `extract_text(layout=True)`
-- Check PDF is not image-based (requires OCR)
+- Make sure `pdfplumber` is being used (other PDF tools often drop footnotes).
+- If a PDF is really a scanned image rather than digital text, no tool can read
+  it without optical character recognition (OCR) first.
 
-### URL Extraction Considerations
+### Strict vs. lenient link extraction
 
-**Lenient mode caveats:**
-- May capture false positives (e.g., `doi.10` without proper URL)
-- Good for comprehensive discovery
-- Use strict mode for cleaner, validated URLs
+- **Lenient mode** finds more, but some matches will not be real links (for
+  example, a fragment like `doi.10` with no proper address).
+- **Strict mode** is cleaner but will miss links written without `http` or
+  `www.` in front.
+- For the article, both were produced so the trade-off could be examined
+  directly.
 
-**Strict mode limitations:**
-- Misses URLs without explicit schemes
-- May miss domain-only references in academic text
+## Ethics and access
 
+- Articles were downloaded through legitimate institutional library access.
+- The scripts pause between requests to avoid overloading publishers' servers.
+- The downloaded PDFs remain under the publishers' copyright and are **not**
+  shared in this repository. The extracted links — which are public references —
+  and the analysis built from them are what is shared here.
+- See [LICENSE.md](LICENSE.md) for the licence covering the code.
 
-## Data Collection Statistics
+## Sources and further reading
 
-### Quality Metrics
+### Libraries used
+- [pdfplumber](https://github.com/jsvine/pdfplumber) — PDF text extraction
+- [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver) — automated browsing
+- [Selenium](https://www.selenium.dev/) — browser automation
+- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) — reading web-page structure
 
-**URL Extraction Quality:**
-- Strict mode: Higher precision, lower recall
-- Lenient mode: Higher recall, lower precision
-
-**Text Extraction Completeness:**
-- pdfplumber captures 95%+ of visible text
-- Includes footnotes, headers, footers
-- Page separators maintain document structure
-
-
-## License and Ethics
-
-### Access Considerations
-
-- All downloads use institutional library access
-- Respect robots.txt and rate limits
-- Use undetected-chromedriver responsibly
-- PDFs are for research purposes only
-
-### Data Usage
-
-- URLs extracted are public references
-- PDF content subject to publisher copyrights
-- Follow fair use guidelines for academic research
-- Cite sources appropriately in publications
-
-
-## References
-
-### Key Libraries
-- [pdfplumber](https://github.com/jsvine/pdfplumber) - PDF text extraction
-- [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver) - Bot bypass
-- [Selenium](https://www.selenium.dev/) - Web automation
-- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) - HTML parsing
-
-### Academic Sources
-- Contemporary European History (Cambridge University Press)
+### Journals studied
 - Journal of Contemporary History (SAGE Publications)
+- Contemporary European History (Cambridge University Press)

@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+"""
+Clean up a list of web links.
+
+Links pulled straight out of PDF text often arrive slightly broken — with a
+stray comma on the end, an "(accessed ...)" note glued on, or two links run
+together. This tidies them up, and also drops two kinds of link that are not of
+interest for the analysis: DOI links (which point to the articles themselves)
+and Creative Commons licence links (which appear automatically on every article).
+
+Run it like this:
+    python scripts/filter_urls.py combined_urls.json filtered_urls.json
+"""
+
 import json
 import sys
 import os

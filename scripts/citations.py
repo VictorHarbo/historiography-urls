@@ -1,3 +1,16 @@
+#!/usr/bin/env python3
+"""
+Find the most-cited recent article in each journal.
+
+A small standalone helper, separate from the main link-analysis pipeline. It
+asks Crossref (a free public catalogue of academic publications) which articles
+in each journal have been cited most often, and prints their title, year, DOI,
+and citation count. It was used for background context on the journals.
+
+Run it like this:
+    python scripts/citations.py
+"""
+
 import requests
 
 

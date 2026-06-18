@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
-Batch process all PDFs in ./pdfs directory and extract text to ./texts directory.
+Read the text out of a whole folder of PDF articles.
+
+For every PDF in the input folder, this saves a plain-text (.txt) copy in the
+output folder, footnotes included (footnotes are where most web links are
+cited). It is the first processing step: the text files it produces are what
+the link-finding tool then scans.
+
+Run it like this:
+    python scripts/batch_extract_pdfs.py --input pdfs --output texts
 """
 
 import pdfplumber

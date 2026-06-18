@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """
-Search through a JSON file containing URLs and find all entries that match a search term.
+Search a list of web links for a particular word or address.
 
-The script searches both the URL field and optionally the file field.
+Given a JSON list of links, this finds and prints every entry containing the
+search term — for instance, every link that mentions a web archive such as
+"web.archive.org". Optionally it can also search the names of the articles the
+links came from.
+
+Run it like this:
+    python scripts/search_urls.py combined_urls.json web.archive.org
 """
 
 import argparse

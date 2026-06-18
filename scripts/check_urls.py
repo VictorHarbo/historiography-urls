@@ -1,3 +1,20 @@
+#!/usr/bin/env python3
+"""
+Check whether a list of web links still works — the link-rot analysis.
+
+This visits every link in a list and records what happens: the page loads
+normally (a "200" reply), the page is gone (the familiar "404 not found"), or
+the link is broken in some other way (the site has disappeared, times out, and
+so on). To finish in reasonable time it checks many links at once.
+
+It then writes two things next to the report file:
+  - a detailed Markdown report listing every link grouped by outcome, and
+  - a small summary image (.png) showing the totals at a glance.
+
+Run it like this:
+    python scripts/check_urls.py filtered_urls.json report.md
+"""
+
 import json
 import sys
 import os

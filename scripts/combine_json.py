@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 """
-Combine multiple JSON files into a single JSON file.
+Merge several JSON files into one.
 
-Supports two merging strategies:
-- If all files contain lists, concatenates them into a single list
-- If all files contain dicts, merges them into a single dict
+Links are extracted journal-by-journal, producing several separate lists. This
+tool joins them into a single combined list so the whole collection can be
+analysed at once.
+
+Run it like this:
+    python scripts/combine_json.py list1.json list2.json -o combined.json
+
+(The "-o" names the file the merged result is written to.)
+
+Technical note: if every input file holds a list, the lists are joined
+end-to-end; if every file holds a named set of values (a "dictionary"), those
+are merged instead. The link lists in this project are always lists.
 """
 
 import argparse

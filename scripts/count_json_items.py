@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
-Count the number of items in a JSON file.
+Count how many entries are in a JSON file.
 
-Works with both JSON lists and JSON objects (dictionaries).
+A small helper for checking totals — for example, how many web links were
+found in a given list. Add "--detailed" to also see what the file contains.
+
+Run it like this:
+    python scripts/count_json_items.py combined_urls.json --detailed
 """
 
 import argparse

@@ -1,4 +1,10 @@
-undetected-chromedriver>=3.5.0
-beautifulsoup4>=4.12.0
-lxml>=4.9.0
-matplotlib>=3.8.0
+# Supporting libraries used by the scripts in this project.
+# Install them all with:  pip install -r requirements.txt
+
+pdfplumber>=0.10.0          # reads text and footnotes out of PDF files
+requests>=2.31.0            # visits web links to check whether they still work
+matplotlib>=3.8.0           # draws the summary image for the link-check report
+undetected-chromedriver>=3.5.0  # drives a real Chrome browser to download articles
+selenium>=4.0.0             # controls the browser step by step
+beautifulsoup4>=4.12.0      # reads the structure of downloaded web pages
+lxml>=4.9.0                 # speeds up the web-page reading done by BeautifulSoup
